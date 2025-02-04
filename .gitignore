@@ -1,0 +1,11 @@
+# Model files and configs
+models/
+
+# Docker and environment files
+.devcontainer/
+environment.yml
+Dockerfile
+compose.yml
+
+# Logs
+output.log
