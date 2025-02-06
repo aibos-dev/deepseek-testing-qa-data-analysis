@@ -9,3 +9,7 @@ compose.yml
 
 # Logs
 output.log
+output_01.log
+
+# packages
+cmake-3.26.4-linux-x86_64

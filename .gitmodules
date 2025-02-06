@@ -1,0 +1,3 @@
+[submodule "llama.cpp"]
+	path = llama.cpp
+	url = https://github.com/ggerganov/llama.cpp/tree/6152129d05870cb38162c422c6ba80434e021e9f

@@ -1,21 +1,6 @@
-import json
-import os
-from datetime import datetime
-import sys
-import subprocess
 
-# Model path setup
-model_01 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf"
-model_02 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ3_S-00001-of-00003.gguf"
-
-model_name = model_01
-
-# Path to the llama.cpp binary
-LLAMA_RUN_PATH = "/workspace/llama.cpp/build/bin/llama-run"
-
-# ---------------------------------------------------------------------------------------------#
-# プロンプト
-input_prompt = """
+        [Prompt]
+        
 
 **指示:**
 
@@ -140,102 +125,165 @@ input_prompt = """
 *   回答は必ずすべて日本語でおこなってください。
 *   忘れないようにもう一度言いますが、回答はすべて日本語でおこなってください。
 
-"""
 
-# ---------------------------------------------------------------------------------------------#
-# JSONファイル名
-data_name = "./qaa.json"
-
-def run_llama_inference(prompt, json_input):
-    """Run inference using llama-run binary"""
-    # Prepare the complete input
-    complete_input = f"{prompt}\n以下が入力となるJSONデータです: \n{json_input}"
-    
-    # Command to run llama-run
-    cmd = [
-        LLAMA_RUN_PATH,
-        model_name,           # Model path (now as a positional argument)
-        "-c", "16384",        # Context size 
-        "-n", "16384",      # Number of tokens
-        "-p", complete_input  # Input prompt
-    ]
-    
-    try:
-        # Run the command and capture output with a longer timeout
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            timeout=3600  # 1 hour timeout to handle large inputs
-        )
-        return result.stdout
-    except subprocess.TimeoutExpired:
-        print(f"処理がタイムアウトしました。大きな入力サイズが原因かもしれません。")
-        return None
-    except subprocess.CalledProcessError as e:
-        print(f"llama-runの実行中にエラーが発生しました: {e}")
-        return None
-    except Exception as e:
-        print(f"予期せぬエラーが発生しました: {e}")
-        return None
-
-# Rest of your script remains the same until the inference part
-def split_into_chunks(data, chunk_size):
-    for i in range(0, len(data), chunk_size):
-        yield data[i:i + chunk_size]
-
-with open(data_name, "r", encoding="utf-8") as f:
-    json_data = json.load(f)
-
-json_chunks = list(split_into_chunks(json_data, 5))
-
-log_folder = sys.argv[1]
-os.makedirs(log_folder, exist_ok=True)
-processed_count = len(os.listdir(log_folder))
-
-for index, chunk in enumerate(json_chunks):
-    if index < processed_count:
-        print(f"パケット {index + 1}/{len(json_chunks)} はすでに処理済みとみなし、スキップします。")
-        continue
-
-    json_text = json.dumps(chunk, ensure_ascii=False)
-    
-    try:
-        # Use the new inference function
-        output_text = run_llama_inference(input_prompt, json_text)
-        
-        if output_text is None:
-            print(f"パケット {index + 1}/{len(json_chunks)} の処理に失敗しました。")
-            # Optionally, you might want to write an error log
-            continue
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file_path = os.path.join(log_folder, f"{timestamp}.txt")
-
-        log_content = f"""
-        [Prompt]
-        {input_prompt}
 
         [Model Name]
-        {model_name}
+        /workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf
 
         [JSON File Name]
-        {data_name}
+        ./qaa.json
 
         [AI Output]
-        {output_text}
-        """
+        <think>
+Okay, I need to analyze each JSON entry and assign labels based on the given categories. Let's go step by step.
 
-        with open(log_file_path, "w", encoding="utf-8") as log_file:
-            log_file.write(log_content)
+First, looking at the uid "cd3b...": the question is about the primary goal of C's actions and their interactions with the carton box. The options suggest tasks like cutting, moving, measuring, etc. The correct answer is 0, which says C's goal was to move the carton box. So, the labels should reflect that.
 
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理結果を保存しました: {log_file_path}")
-    
-    except KeyboardInterrupt:
-        print("\n処理を手動で中断しました。現在のパケットでの処理を停止します。")
-        break
-    except Exception as e:
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理中に予期せぬエラーが発生しました: {e}")
-        # Optionally log the error
-        continue
+Next, for the uid "cd384...": it's about the video stages involving a wood cutting machine. The correct answer is 4, which mentions using a cutting machine. So, the labels should focus on woodworking activities.
+
+Then, the uid "cd569...": the question is about C's primary task. The answer is cleaning, so the labels should relate to cleaning actions and tools.
+
+I'll go through each entry, assign the relevant labels, and ensure all categories are covered accurately.
+</think>
+
+```json
+[
+  {
+    "uid": "cd3b4d9c-7f2e-4b4c-9e4b-2b3f5c1f0cf",
+    "動作の種類": "生成",
+    "場所": "屋内",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "なし",
+    "インタラクションの種類": "なし",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "全身",
+    "視覚的特徴": "不明",
+    "音": "なし",
+    "アフォーダンス": "なし",
+    "タスクの目的": "不明",
+    "作業環境": "不明",
+    "感情/心理状態": "不明",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "不明",
+    "身体の姿勢": "立位",
+    "反復性": "なし",
+    "照明": "不明",
+    "天候": "屋内",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "人物, 行為",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "不明",
+    "抽象度": "抽象的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "関連",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "不要",
+    "情報源": "質問文のみ",
+    "確信度 (回答の)": "不明",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  },
+  {
+    "uid": "cd384dae-4229-4fa5-9fed-e4b5a1432f29",
+    "動作の種類": "制作 - 加工作業",
+    "場所": "屋内 - 工場",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "材料 - 木材",
+    "インタラクションの種類": "道具操作",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "全身",
+    "視覚的特徴": "不明",
+    "音": "あり - 物音 - 機械音",
+    "アフォーダンス": "切断",
+    "タスクの目的": "仕事/業務",
+    "作業環境": "不明",
+    "感情/心理状態": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "対象物",
+    "身体の姿勢": "立位, 作業姿勢",
+    "反復性": "あり - 高頻度",
+    "照明": "人工光",
+    "天候": "屋内",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "人物, 行為",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "品質向上",
+    "抽象度": "抽象的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "関連",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 専門スキル - 木工",
+    "情報源": "質問文のみ, 理由",
+    "確信度 (回答の)": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  },
+  {
+    "uid": "cd569206-229f-44ac-aa8f-be52f68b0fd6",
+    "動作の種類": "生成",
+    "場所": "屋内 - 家庭",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "なし",
+    "インタラクションの種類": "なし",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "全身",
+    "視覚的特徴": "不明",
+    "音": "なし",
+    "アフォーダンス": "なし",
+    "タスクの目的": "生活維持",
+    "作業環境": "清掃",
+    "感情/心理州市": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "不明",
+    "身体の姿勢": "立位",
+    "反復性": "なし",
+    "照明": "不明",
+    "天候": "屋内",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "人物, 行為",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "品質向上",
+    "抽象度": "抽象的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "関連",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 家庭菜",
+    "情報源": "質問文のみ, 理由",
+    "確信度 (回答の)": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  }
+]
+```[0m
+
+        
