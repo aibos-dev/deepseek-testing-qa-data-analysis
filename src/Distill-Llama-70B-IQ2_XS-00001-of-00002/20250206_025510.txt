@@ -1,21 +1,6 @@
-import json
-import os
-from datetime import datetime
-import sys
-import subprocess
 
-# Model path setup
-model_01 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf"
-model_02 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ3_S-00001-of-00003.gguf"
-
-model_name = model_01
-
-# Path to the llama.cpp binary
-LLAMA_RUN_PATH = "/workspace/llama.cpp/build/bin/llama-run"
-
-# ---------------------------------------------------------------------------------------------#
-# プロンプト
-input_prompt = """
+        [Prompt]
+        
 
 **指示:**
 
@@ -140,102 +125,131 @@ input_prompt = """
 *   回答は必ずすべて日本語でおこなってください。
 *   忘れないようにもう一度言いますが、回答はすべて日本語でおこなってください。
 
-"""
 
-# ---------------------------------------------------------------------------------------------#
-# JSONファイル名
-data_name = "./qaa.json"
-
-def run_llama_inference(prompt, json_input):
-    """Run inference using llama-run binary"""
-    # Prepare the complete input
-    complete_input = f"{prompt}\n以下が入力となるJSONデータです: \n{json_input}"
-    
-    # Command to run llama-run
-    cmd = [
-        LLAMA_RUN_PATH,
-        model_name,           # Model path (now as a positional argument)
-        "-c", "16384",        # Context size 
-        "-n", "16384",      # Number of tokens
-        "-p", complete_input  # Input prompt
-    ]
-    
-    try:
-        # Run the command and capture output with a longer timeout
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            timeout=3600  # 1 hour timeout to handle large inputs
-        )
-        return result.stdout
-    except subprocess.TimeoutExpired:
-        print(f"処理がタイムアウトしました。大きな入力サイズが原因かもしれません。")
-        return None
-    except subprocess.CalledProcessError as e:
-        print(f"llama-runの実行中にエラーが発生しました: {e}")
-        return None
-    except Exception as e:
-        print(f"予期せぬエラーが発生しました: {e}")
-        return None
-
-# Rest of your script remains the same until the inference part
-def split_into_chunks(data, chunk_size):
-    for i in range(0, len(data), chunk_size):
-        yield data[i:i + chunk_size]
-
-with open(data_name, "r", encoding="utf-8") as f:
-    json_data = json.load(f)
-
-json_chunks = list(split_into_chunks(json_data, 5))
-
-log_folder = sys.argv[1]
-os.makedirs(log_folder, exist_ok=True)
-processed_count = len(os.listdir(log_folder))
-
-for index, chunk in enumerate(json_chunks):
-    if index < processed_count:
-        print(f"パケット {index + 1}/{len(json_chunks)} はすでに処理済みとみなし、スキップします。")
-        continue
-
-    json_text = json.dumps(chunk, ensure_ascii=False)
-    
-    try:
-        # Use the new inference function
-        output_text = run_llama_inference(input_prompt, json_text)
-        
-        if output_text is None:
-            print(f"パケット {index + 1}/{len(json_chunks)} の処理に失敗しました。")
-            # Optionally, you might want to write an error log
-            continue
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file_path = os.path.join(log_folder, f"{timestamp}.txt")
-
-        log_content = f"""
-        [Prompt]
-        {input_prompt}
 
         [Model Name]
-        {model_name}
+        /workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf
 
         [JSON File Name]
-        {data_name}
+        ./qaa.json
 
         [AI Output]
-        {output_text}
-        """
+        <think>
+Alright, I'm faced with the task of analyzing this JSON data and assigning category labels based on the given criteria. Let me try to break this down step by step.
 
-        with open(log_file_path, "w", encoding="utf-8") as log_file:
-            log_file.write(log_content)
+First, I need to understand the structure of the data. Each entry has a 'uid', 'question', 'options', 'ai_answer', 'correct_answer', 'reason', 'confidence', and several other fields. My task is to analyze each entry and assign various labels based on the provided criteria.
 
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理結果を保存しました: {log_file_path}")
-    
-    except KeyboardInterrupt:
-        print("\n処理を手動で中断しました。現在のパケットでの処理を停止します。")
-        break
-    except Exception as e:
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理中に予期せぬエラーが発生しました: {e}")
-        # Optionally log the error
-        continue
+Looking at the criteria, I need to focus on several aspects: action types, locations, number of people, their relationships, objects used, interactions, view types, abnormalities, coordination, action granularity, body parts, visual features, sound, affordance, task purpose, work environment, emotions, language used, gaze direction, body posture, repetitiveness, lighting, weather, question type, depth of consideration, question focus, difficulty, task complexity, time axis, action intent, abstractness, required knowledge, question structure, answer candidate relationships, answer specificity, answer coverage, answer viewpoint, required skills, information sources, confidence, ethical considerations, and task urgency.
+
+That's a lot to consider for each entry. I'll start by examining the first entry.
+
+**First Entry Analysis:**
+- **UID:** "6f42ba6a-cb2a-4843-95ef-33b79610d212"
+- **Question:** "Identify the primary tools and ingredients used throughout the video and discuss how they contributed to the overall dessert preparation process."
+- **Options:** Five options listing various tools and ingredients.
+- **AI Answer:** 0
+- **Correct Answer:** 0
+- **Reason:** The video involves using a spatula, strainer, dessert bowl, cocoa powder, and tissue paper. These tools and ingredients are crucial for dessert making, focusing on spreading, sieving, and cleaning.
+- **Confidence:** 5
+
+From the reason, the primary tools and ingredients are a spatula, strainer, dessert bowl, cocoa powder, and tissue paper. These are used in a dessert preparation context.
+
+Now, mapping this to the categories:
+
+1. **Action Type:** This is a making/drafting task, so "制作 - 加工作業" seems appropriate.
+2. **Location:** The video is set in a "作業場" (workshop or kitchen).
+3. **Number of People:** Only one person (C).
+4. **Relationship:** C is alone.
+5. **Target Objects:** Materials, specifically cocoa powder and a dessert bowl.
+6. **Interaction Type:** Tool operation, specifically using utensils.
+7. **View Type:** Not clearly specified, so "不明".
+8. **Abnormality:** No abnormal actions.
+9. **Coordination:** Not applicable.
+10. **Action Granularity:** Coarse, as it's about overall dessert making.
+11. **Body Parts:** Not specified, but likely full body involvement.
+12. **Visual Features:** Not specified.
+13. **Sound:** There might be machine sounds from tools like the strainer.
+14. **Affordance:** Cutting (e.g., using the spatula).
+15. **Task Purpose:** Work/business.
+16. **Work Environment:** Not specified.
+17. **Emotion:** Concentrating.
+18. **Language:** No spoken language.
+19. **Gaze Direction:** Towards the dessert bowl.
+20. **Body Posture:** Standing and working.
+21. **Repetitiveness:** High frequency.
+22. **Lighting:** Not specified.
+23. **Weather:** Indoor.
+24. **Question Type:** What.
+25. **Question Depth:** Inferential.
+26. **Question Focus:** On objects and actions.
+27. **Question Difficulty:** Medium.
+28. **Task Complexity:** Single action.
+29. **Time Axis:** Entire process.
+30. **Action Intent:** Quality improvement.
+31. **Abstractness:** Abstract.
+32. **Knowledge Required:** General knowledge.
+33. **Question Structure:** Direct.
+34. **Answer Relationships:** Options are related but not same.
+35. **Answer Specificity:** Specific.
+36. **Answer Coverage:** Partial.
+37. **Answer Viewpoint:** Third person.
+38. **Skills Needed:** Craftsmanship.
+39. **Information Sources:** Question and options.
+40. **Confidence:** High.
+41. **Ethical Considerations:** Not needed.
+42. **Task Urgency:** Normal.
+
+This seems to cover all the required categories. I'll structure this into the JSON format as specified.
+</think>
+
+```json
+[
+  {
+    "uid": "6f42ba6a-cb2a-4843-95ef-33b79610d212",
+    "動作の種類": "制作 - 加工作業",
+    "場所": "屋内 - 作業場",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "材料 - 木材",
+    "インタラクションの種類": "道具操作",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "全身",
+    "視覚的特徴": "不明",
+    "音": "あり - 物音 - 機械音",
+    "アフォーダンス": "切断",
+    "タスクの目的": "仕事/業務",
+    "作業環境": "不明",
+    "感情/心理状態": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "対象物",
+    "身体の姿勢": "立位, 作業姿勢",
+    "反復性": "あり - 高頻度",
+    "照明": "不明",
+    "天候": "屋内",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "人物, 行為",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "品質向上",
+    "抽象度": "抽象的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "反意, 関連",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 専門スキル - 木工",
+    "情報源": "質問文のみ, 回答候補, 理由",
+    "確信度 (回答の)": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  }
+]
+```[0m
+
+        

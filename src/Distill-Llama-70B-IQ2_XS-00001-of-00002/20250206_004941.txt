@@ -1,21 +1,6 @@
-import json
-import os
-from datetime import datetime
-import sys
-import subprocess
 
-# Model path setup
-model_01 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf"
-model_02 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ3_S-00001-of-00003.gguf"
-
-model_name = model_01
-
-# Path to the llama.cpp binary
-LLAMA_RUN_PATH = "/workspace/llama.cpp/build/bin/llama-run"
-
-# ---------------------------------------------------------------------------------------------#
-# プロンプト
-input_prompt = """
+        [Prompt]
+        
 
 **指示:**
 
@@ -140,102 +125,84 @@ input_prompt = """
 *   回答は必ずすべて日本語でおこなってください。
 *   忘れないようにもう一度言いますが、回答はすべて日本語でおこなってください。
 
-"""
 
-# ---------------------------------------------------------------------------------------------#
-# JSONファイル名
-data_name = "./qaa.json"
-
-def run_llama_inference(prompt, json_input):
-    """Run inference using llama-run binary"""
-    # Prepare the complete input
-    complete_input = f"{prompt}\n以下が入力となるJSONデータです: \n{json_input}"
-    
-    # Command to run llama-run
-    cmd = [
-        LLAMA_RUN_PATH,
-        model_name,           # Model path (now as a positional argument)
-        "-c", "16384",        # Context size 
-        "-n", "16384",      # Number of tokens
-        "-p", complete_input  # Input prompt
-    ]
-    
-    try:
-        # Run the command and capture output with a longer timeout
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            timeout=3600  # 1 hour timeout to handle large inputs
-        )
-        return result.stdout
-    except subprocess.TimeoutExpired:
-        print(f"処理がタイムアウトしました。大きな入力サイズが原因かもしれません。")
-        return None
-    except subprocess.CalledProcessError as e:
-        print(f"llama-runの実行中にエラーが発生しました: {e}")
-        return None
-    except Exception as e:
-        print(f"予期せぬエラーが発生しました: {e}")
-        return None
-
-# Rest of your script remains the same until the inference part
-def split_into_chunks(data, chunk_size):
-    for i in range(0, len(data), chunk_size):
-        yield data[i:i + chunk_size]
-
-with open(data_name, "r", encoding="utf-8") as f:
-    json_data = json.load(f)
-
-json_chunks = list(split_into_chunks(json_data, 5))
-
-log_folder = sys.argv[1]
-os.makedirs(log_folder, exist_ok=True)
-processed_count = len(os.listdir(log_folder))
-
-for index, chunk in enumerate(json_chunks):
-    if index < processed_count:
-        print(f"パケット {index + 1}/{len(json_chunks)} はすでに処理済みとみなし、スキップします。")
-        continue
-
-    json_text = json.dumps(chunk, ensure_ascii=False)
-    
-    try:
-        # Use the new inference function
-        output_text = run_llama_inference(input_prompt, json_text)
-        
-        if output_text is None:
-            print(f"パケット {index + 1}/{len(json_chunks)} の処理に失敗しました。")
-            # Optionally, you might want to write an error log
-            continue
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file_path = os.path.join(log_folder, f"{timestamp}.txt")
-
-        log_content = f"""
-        [Prompt]
-        {input_prompt}
 
         [Model Name]
-        {model_name}
+        /workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf
 
         [JSON File Name]
-        {data_name}
+        ./qaa.json
 
         [AI Output]
-        {output_text}
-        """
+        <think>
+嗯，今天我收到了一个关于分析JSON数据的任务，需要仔细分析每个数据条目，并根据提供的分类标准给每个条目打上相应的标签。作为一个刚接触这个任务的新手，我觉得这是一个很有挑战但也非常有趣的任务。
 
-        with open(log_file_path, "w", encoding="utf-8") as log_file:
-            log_file.write(log_content)
+首先，我需要理解这个任务的具体要求。任务要求分析每个JSON数据，关注观点A中的各种分类，比如动作类型、地点、人物数量、人物关系等等，然后根据这些分类给每个数据条目打上相应的标签。同时，还要分析问题内容和回答候补，确保所有的标签都是准确的。
 
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理結果を保存しました: {log_file_path}")
-    
-    except KeyboardInterrupt:
-        print("\n処理を手動で中断しました。現在のパケットでの処理を停止します。")
-        break
-    except Exception as e:
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理中に予期せぬエラーが発生しました: {e}")
-        # Optionally log the error
-        continue
+我仔细阅读了提供的分类标准，发现观点A有23个分类点，涵盖动作类型、地点、人物数、人物关系、目标对象等。这些分类看起来很详细，能够帮助我准确地理解每个数据条目的内容。
+
+接下来，我注意到每个JSON数据包含了一些特定的信息，比如问题、选项、AI生成的回答、正确答案、理由和信心度。这些信息将帮助我进行分析，并根据分类标准给每个条目打上正确的标签。
+
+作为一个新手，我觉得最大的挑战是如何准确地将每个数据条目归类到正确的分类中。比如，动作类型有很多细分类别，我需要仔细阅读每个问题和选项，才能确定正确的标签。另外，有些分类标准可能需要更深入的理解，比如“反复性”是否有反复，或者“视点的种类”是固定还是移动等等。
+
+为了确保准确性，我决定逐一分析每个数据条目。首先，我会阅读问题和选项，然后分析AI生成的回答和正确答案，理解它们的内容和理由。接下来，我会根据提供的分类标准，逐一检查每个分类点，判断该条数据属于哪一类。
+
+在分析过程中，我可能会遇到一些不确定的情况，比如某个分类点不明确，或者某些信息不足以判断。这时候，我会参考提供的补充说明，特别是“不明”或“该当なし”这样的选项，确保不会漏掉任何信息。
+
+此外，我还要注意到，每个数据条目都有唯一的uid，这意味着每个条目都是独立的，我需要为每个条目单独分析和打标签。
+
+在实际操作中，我可能会先从简单的分类开始，比如“动作的类型”和“地点”，这些通常是比较直观的。然后，再逐步分析更复杂的分类，比如“回答的具体性”和“视点的种类”。
+
+总之，我觉得这个任务虽然有一定的难度，但通过仔细分析和逐步分类，应该能够完成任务。同时，这个过程也让我对数据分析和分类有了更深的理解，未来遇到类似任务时会更加得心应手。
+</think>
+
+```json
+[
+  {
+    "uid": "1f0bdc87-aa40-4fb3-934e-10e9bc19ec4c",
+    "動作の種類": "制作 - 加工作業",
+    "場所": "屋内 - 作業場",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "材料 - 塑膚",
+    "インタラクションの種類": "道具操作",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "全身",
+    "視覚的特徴": "不明",
+    "音": "あり - 物音 - 機械音",
+    "アフォーダンス": "切断",
+    "タスクの目的": "仕事/業務",
+    "作業環境": "不明",
+    "感情/心理状態": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "対象物",
+    "身体の姿勢": "立位, 作業姿勢",
+    "反復性": "あり - 高頻度",
+    "照明": "不明",
+    "天候": "屋内",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "人物, 行為",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "品質向上",
+    "抽象度": "抽象的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "反意, 関連",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 専門スキル - 塩 工",
+    "情報源": "質問文のみ, 回答候補, 理由",
+    "確信度 (回答の)": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  },...]
+```[0m
+
+        

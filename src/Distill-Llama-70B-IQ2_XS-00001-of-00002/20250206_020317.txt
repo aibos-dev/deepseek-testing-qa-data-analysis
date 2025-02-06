@@ -1,21 +1,6 @@
-import json
-import os
-from datetime import datetime
-import sys
-import subprocess
 
-# Model path setup
-model_01 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf"
-model_02 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ3_S-00001-of-00003.gguf"
-
-model_name = model_01
-
-# Path to the llama.cpp binary
-LLAMA_RUN_PATH = "/workspace/llama.cpp/build/bin/llama-run"
-
-# ---------------------------------------------------------------------------------------------#
-# プロンプト
-input_prompt = """
+        [Prompt]
+        
 
 **指示:**
 
@@ -140,102 +125,237 @@ input_prompt = """
 *   回答は必ずすべて日本語でおこなってください。
 *   忘れないようにもう一度言いますが、回答はすべて日本語でおこなってください。
 
-"""
 
-# ---------------------------------------------------------------------------------------------#
-# JSONファイル名
-data_name = "./qaa.json"
-
-def run_llama_inference(prompt, json_input):
-    """Run inference using llama-run binary"""
-    # Prepare the complete input
-    complete_input = f"{prompt}\n以下が入力となるJSONデータです: \n{json_input}"
-    
-    # Command to run llama-run
-    cmd = [
-        LLAMA_RUN_PATH,
-        model_name,           # Model path (now as a positional argument)
-        "-c", "16384",        # Context size 
-        "-n", "16384",      # Number of tokens
-        "-p", complete_input  # Input prompt
-    ]
-    
-    try:
-        # Run the command and capture output with a longer timeout
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            timeout=3600  # 1 hour timeout to handle large inputs
-        )
-        return result.stdout
-    except subprocess.TimeoutExpired:
-        print(f"処理がタイムアウトしました。大きな入力サイズが原因かもしれません。")
-        return None
-    except subprocess.CalledProcessError as e:
-        print(f"llama-runの実行中にエラーが発生しました: {e}")
-        return None
-    except Exception as e:
-        print(f"予期せぬエラーが発生しました: {e}")
-        return None
-
-# Rest of your script remains the same until the inference part
-def split_into_chunks(data, chunk_size):
-    for i in range(0, len(data), chunk_size):
-        yield data[i:i + chunk_size]
-
-with open(data_name, "r", encoding="utf-8") as f:
-    json_data = json.load(f)
-
-json_chunks = list(split_into_chunks(json_data, 5))
-
-log_folder = sys.argv[1]
-os.makedirs(log_folder, exist_ok=True)
-processed_count = len(os.listdir(log_folder))
-
-for index, chunk in enumerate(json_chunks):
-    if index < processed_count:
-        print(f"パケット {index + 1}/{len(json_chunks)} はすでに処理済みとみなし、スキップします。")
-        continue
-
-    json_text = json.dumps(chunk, ensure_ascii=False)
-    
-    try:
-        # Use the new inference function
-        output_text = run_llama_inference(input_prompt, json_text)
-        
-        if output_text is None:
-            print(f"パケット {index + 1}/{len(json_chunks)} の処理に失敗しました。")
-            # Optionally, you might want to write an error log
-            continue
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file_path = os.path.join(log_folder, f"{timestamp}.txt")
-
-        log_content = f"""
-        [Prompt]
-        {input_prompt}
 
         [Model Name]
-        {model_name}
+        /workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf
 
         [JSON File Name]
-        {data_name}
+        ./qaa.json
 
         [AI Output]
-        {output_text}
-        """
+        <think>
+Okay, I need to analyze the provided JSON data and assign category labels based on the specified guidelines. Let's take it step by step.
 
-        with open(log_file_path, "w", encoding="utf-8") as log_file:
-            log_file.write(log_content)
+First, looking at the "動作の種類" (type of action), the options are "制作 - 加工作業", " 組み立て作業", etc. Since the action involves cutting weeds, it's more about maintaining or managing, so likely " 維持管理 - 清掃".
 
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理結果を保存しました: {log_file_path}")
-    
-    except KeyboardInterrupt:
-        print("\n処理を手動で中断しました。現在のパケットでの処理を停止します。")
-        break
-    except Exception as e:
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理中に予期せぬエラーが発生しました: {e}")
-        # Optionally log the error
-        continue
+Next, the location is "屋外 - 農地" as it's about a garden.
+
+The number of people is just C, so "1人".
+
+For relations, it's just C alone, so "一人".
+
+The objects involved are plants, which are natural materials, so "自然物".
+
+The interaction type is handling plants, so "操作・制御 - 道具操作".
+
+The viewpoint isn't specified, so "不明".
+
+No abnormal actions are present, so "なし".
+
+Cooperation is not applicable here, so "該当なし".
+
+The action is cutting weeds, which is a specific task, so "粗粒度".
+
+The body parts involved are hands using tools, so "手 - 両手".
+
+Visual features are not clear, so "不明".
+
+There's no mention of sound, so "なし".
+
+The action involves cutting, which is a form of "切断".
+
+The task's purpose is maintenance, so " 維持管理".
+
+The environment isn't described, so "不明".
+
+C is focused, so "集中".
+
+No language is involved, so "なし".
+
+C's focus is on the plants, so "対象物".
+
+C is standing and working, so "立位, 作業姿勢".
+
+The action is repeated, so " 高頻度".
+
+Lighting is not specified, so "不明".
+
+Since it's outdoors, "晴れ".
+
+The question is about actions and their overall goals, so "What".
+
+The question requires analysis, so "推論的".
+
+Focus is on actions, so "行動".
+
+The difficulty is medium, so "中".
+
+It's a single action, so "単一動作".
+
+The overall goal is maintenance, so "維持".
+
+It's a practical task, so "具体的".
+
+The question is direct, so "直接的".
+
+The options are related, so "関係".
+
+The answer is specific, so "具体的".
+
+It covers parts of the action, so "部分的".
+
+View is from outside, so "第三者視点".
+
+Skills needed are physical, so "手先の器用さ".
+
+Information comes from the question, so "質問文のみ".
+
+Confidence is high, so "高い".
+
+No ethical concerns, so "不要".
+
+The task urgency is normal, so "普通".
+</think>
+
+```json
+[
+  {
+    "uid": "4ca1c82d-232c-4ffc-bad0-69f9aa992aef",
+    "動作の種類": " 維持管理 - 清掃",
+    "場所": "屋外 - 農地",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "自然物",
+    "インタラクションの種類": "道具操作",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "手 - 両手",
+    "視覚的特徴": "不明",
+    "音": "なし",
+    "アフォーダンス": "切断",
+    "タスクの目的": "維持管理",
+    "作業環境": "不明",
+    "感情/心理状態": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "対象物",
+    "身体の姿勢": "立位, 作業姿勢",
+    "反復性": "あり - 高頻度",
+    "照明": "不明",
+    "天候": "晴れ",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "行動",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "維持",
+    "抽象度": "具体的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "関連",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 手先の器用さ",
+    "情報源": "質問文のみ",
+    "確信度 (回答の)": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  },
+  {
+    "uid": "4e0b4961-1c21-4025-9ba6-0b526e3aaf3c",
+    "動作の種類": "製造 - 加工作業",
+    "場所": "屋内 - 工作場",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "材料 - 木材",
+    "インタラクションの種類": "道具操作",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "全身",
+    "視覚的特徴": "不明",
+    "音": "あり - 物音 - 機械音",
+    "アフォーダンス": "切断",
+    "タスクの目的": "仕事/業務",
+    "作業環境": "不明",
+    "感情/心理状態": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "対象物",
+    "身体の姿勢": "立位, 作業姿勢",
+    "反復性": "あり - 高頻度",
+    "照明": "不明",
+    "天候": "屋内",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "人物, 行為",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "品質向上",
+    "抽象度": "抽象的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "反意, 関連",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 専門スキル - 木工",
+    "情報源": "質問文のみ, 回答候補, 理由",
+    "確信度 ( 答答の )": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  },
+  {
+    "uid": "4e0e4bbb-a86c-4c8d-bd05-87a52f037561",
+    "動作の種類": "維持管理 - 清掃",
+    "場所": "屋外 - 農地",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "自然物",
+    "インタラクションの種類": "道具操作",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "手 - 両手",
+    "視覚的特徴": "不明",
+    "音": "なし",
+    "アフォーダンス": "切断",
+    "タスクの目的": "維持管理",
+    "作業環境": "不明",
+    "感情/心理状態": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "対象物",
+    "身体の姿勢": "立位, 作業姿勢",
+    "反復性": "あり - 高頻度",
+    "照明": "不明",
+    "天候": "晴れ",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "行動",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "維持",
+    "抽象度": "具体的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "関連",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 手先の器用さ",
+    "情報源": "質問文のみ",
+    "確信度 ( 答答の )": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  }
+]
+```[0m
+
+        

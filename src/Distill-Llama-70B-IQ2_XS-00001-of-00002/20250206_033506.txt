@@ -1,21 +1,6 @@
-import json
-import os
-from datetime import datetime
-import sys
-import subprocess
 
-# Model path setup
-model_01 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf"
-model_02 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ3_S-00001-of-00003.gguf"
-
-model_name = model_01
-
-# Path to the llama.cpp binary
-LLAMA_RUN_PATH = "/workspace/llama.cpp/build/bin/llama-run"
-
-# ---------------------------------------------------------------------------------------------#
-# プロンプト
-input_prompt = """
+        [Prompt]
+        
 
 **指示:**
 
@@ -140,102 +125,253 @@ input_prompt = """
 *   回答は必ずすべて日本語でおこなってください。
 *   忘れないようにもう一度言いますが、回答はすべて日本語でおこなってください。
 
-"""
 
-# ---------------------------------------------------------------------------------------------#
-# JSONファイル名
-data_name = "./qaa.json"
-
-def run_llama_inference(prompt, json_input):
-    """Run inference using llama-run binary"""
-    # Prepare the complete input
-    complete_input = f"{prompt}\n以下が入力となるJSONデータです: \n{json_input}"
-    
-    # Command to run llama-run
-    cmd = [
-        LLAMA_RUN_PATH,
-        model_name,           # Model path (now as a positional argument)
-        "-c", "16384",        # Context size 
-        "-n", "16384",      # Number of tokens
-        "-p", complete_input  # Input prompt
-    ]
-    
-    try:
-        # Run the command and capture output with a longer timeout
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            timeout=3600  # 1 hour timeout to handle large inputs
-        )
-        return result.stdout
-    except subprocess.TimeoutExpired:
-        print(f"処理がタイムアウトしました。大きな入力サイズが原因かもしれません。")
-        return None
-    except subprocess.CalledProcessError as e:
-        print(f"llama-runの実行中にエラーが発生しました: {e}")
-        return None
-    except Exception as e:
-        print(f"予期せぬエラーが発生しました: {e}")
-        return None
-
-# Rest of your script remains the same until the inference part
-def split_into_chunks(data, chunk_size):
-    for i in range(0, len(data), chunk_size):
-        yield data[i:i + chunk_size]
-
-with open(data_name, "r", encoding="utf-8") as f:
-    json_data = json.load(f)
-
-json_chunks = list(split_into_chunks(json_data, 5))
-
-log_folder = sys.argv[1]
-os.makedirs(log_folder, exist_ok=True)
-processed_count = len(os.listdir(log_folder))
-
-for index, chunk in enumerate(json_chunks):
-    if index < processed_count:
-        print(f"パケット {index + 1}/{len(json_chunks)} はすでに処理済みとみなし、スキップします。")
-        continue
-
-    json_text = json.dumps(chunk, ensure_ascii=False)
-    
-    try:
-        # Use the new inference function
-        output_text = run_llama_inference(input_prompt, json_text)
-        
-        if output_text is None:
-            print(f"パケット {index + 1}/{len(json_chunks)} の処理に失敗しました。")
-            # Optionally, you might want to write an error log
-            continue
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file_path = os.path.join(log_folder, f"{timestamp}.txt")
-
-        log_content = f"""
-        [Prompt]
-        {input_prompt}
 
         [Model Name]
-        {model_name}
+        /workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf
 
         [JSON File Name]
-        {data_name}
+        ./qaa.json
 
         [AI Output]
-        {output_text}
-        """
+        <think>
+Okay, I'm faced with this task where I need to analyze a JSON dataset related to human action understanding. The goal is to assign category labels to each entry based on various criteria provided. Let me break this down step by step.
 
-        with open(log_file_path, "w", encoding="utf-8") as log_file:
-            log_file.write(log_content)
+First, I need to understand the structure of the JSON data. Each entry has a unique ID (uid), a question, options (possible answers), the AI's answer, the correct answer, a reason for the answer, and a confidence score. My task is to go through each of these entries and assign labels based on the criteria provided in section A, B, C, and D.
 
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理結果を保存しました: {log_file_path}")
-    
-    except KeyboardInterrupt:
-        print("\n処理を手動で中断しました。現在のパケットでの処理を停止します。")
-        break
-    except Exception as e:
-        print(f"パケット {index + 1}/{len(json_chunks)} の処理中に予期せぬエラーが発生しました: {e}")
-        # Optionally log the error
-        continue
+Starting with the first entry:
+
+- **UID**: "87555387-5ded-400b-b273-fe5b16c853e2"
+- **Question**: "What is the primary objective of c's actions throughout the video, and how do her activities contribute to achieving this goal?"
+- **Options**: Five options about grain preparation.
+- **AI answer**: 3
+- **Correct answer**: 3
+- **Reason**: Focus on preparing grain for cooking.
+- **Confidence**: 5
+
+I need to analyze each of the 43 criteria for this entry. 
+
+1. **動作の種類 (Action type)**: From the reason, it seems like preparing grain, which is a production/adduction type activity.
+
+2. **場所 (Location)**: The video mentions using a gas cooker, so likely indoor.
+
+3. **登場人物の数 (Number of people)**: Only C is mentioned, so 1 person.
+
+4. **登場人物の関係性 (Relationship)**: C is alone.
+
+5. **対象オブジェクト (Objects involved)**: Grain and tools like strainer, etc.
+
+6. **インタラクションの種類 (Interaction type)**: Using tools and handling grain.
+
+7. **視点の種類 (View type)**: Not specified, so "不明".
+
+8. **異常行動 (Abnormality)**: None mentioned.
+
+9. **協調性 (Cooperation)**: Single person, so "該当なし".
+
+10. **動作の粒度 (Action granularity)**: Preparing and cooking, which is a coarse granularity.
+
+11. **身体部位 (Body parts)**: Not specified, so "不明".
+
+12. **視覚的特徴 (Visual features)**: Not specified.
+
+13. **音 (Sound)**: Not mentioned.
+
+14. **アフォーダンス (Affordance)**: Cutting, preparing.
+
+15. **タスクの目的 (Task purpose)**: Preparing for cooking.
+
+16. **作業環境 (Work environment)**: Not specified.
+
+17. **感情/心理状態 (Emotion)**: Not mentioned.
+
+18. **使用言語 (Language)**: Not applicable.
+
+19. **視線の方向 (Eye direction)**: Towards the task.
+
+20. **身体の姿勢 (Posture)**: Standing and working.
+
+21. **反復性 (Repeatability)**: Likely high frequency.
+
+22. **照明 (Lighting)**: Not specified.
+
+23. **天候 (Weather)**: Indoor.
+
+24. **質問の種類 (Question type)**: What, focusing on the primary objective.
+
+25. **質問の深さ (Question depth)**: It's a detailed question about purpose.
+
+26. **質問の焦点 (Question focus)**: On the activity.
+
+27. **質問の難易度 (Difficulty)**: Mid-level.
+
+28. **タスクの複雑さ (Task complexity)**: Single action.
+
+29. **時間軸 (Time axis)**: Entire process.
+
+30. **行動の意図 (Action intention)**: Quality improvement.
+
+31. **抽象度 (Abstraction)**: Somewhat abstract.
+
+32. **知識要求 (Knowledge required)**: General knowledge.
+
+33. **質問の構造 (Question structure)**: Direct.
+
+34. **回答候補同士の関係性 (Answer options relation)**: Related.
+
+35. **回答の具体性 (Answer specificity)**: Specific.
+
+36. **回答の網羅性 (Answer coverage)**: Partial.
+
+37. **回答の視点 (Answer perspective)**: Third person.
+
+38. **技能 (Skills needed)**: Cooking skills.
+
+39. **情報源 (Source of information)**: Question and options.
+
+40. **確信度 (Confidence)**: High.
+
+41. **倫理的配慮 (Ethical considerations)**: Not needed.
+
+42. **タスクの緊急度 (Urgency)**: Normal.
+
+I need to ensure that each of these points is accurately reflected in the JSON structure, using the appropriate labels and ensuring that the most fitting category is selected. Some parts like visual features and sound are not specified, so I'll mark them as "不明" or "該該なし" as per instructions.
+
+Moving to the second entry:
+
+- **UID**: "876d37d8-07f5-4508-b458-631b3e2c6fab"
+- **Question**: "How would you summarize the central objective?"
+- **Options**: Coloring a picture vs others.
+- **AI answer**: 0
+- **Correct answer**: 0
+- **Reason**: Focus on coloring.
+
+Similar analysis applies here, focusing on coloring as the main action.
+
+Third entry:
+
+- **UID**: "88254e8e-6d05-4d2d-98b4-cd76f6412ac3"
+- **Question**: "What was the purpose?"
+- **Options**: Bathroom renovation tasks.
+- **AI answer**: 4
+- **Correct answer**: 4
+- **Reason**: Tile installation.
+
+Fourth entry:
+
+- **UID**: "8955952a-946c-4841-895f-1fe0e2f000fb"
+- **Question**: "Identify the most important parts..."
+- **Options**: Washing and chopping meat.
+- **AI answer**: 1
+- **Correct answer**: 0
+- **Reason**: Focus on washing and chopping.
+
+Fifth entry:
+
+- **UID**: "8b462af5-dd9e-49a8-ab0a-92e28b7d7dd4"
+- **Question**: "Identify the main objective..."
+- **Options**: Setting up camp or electronics.
+- **AI answer**: 4
+- **Correct answer**: 0
+- **Reason**: Focus on electronics setup.
+
+For each of these, I need to carefully assign the labels based on the provided criteria, ensuring accuracy and consistency.
+</think>
+
+```json
+[
+  {
+    "uid": "87555387-5ded-400b-b273-fe5b16c853e2",
+    "動作の種類": "制作 - 加工作業",
+    "場所": "屋内 - キッチン",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "材料 - 食品",
+    "インタラクションの種類": "道具操作",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "不明",
+    "視覚的特徴": "不明",
+    "音": "なし",
+    "アフォーダンス": "切断",
+    "タスクの目的": "生活維持",
+    "作業環境": "不明",
+    "感情/心理状態": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "対象物",
+    "身体の姿勢": "立位",
+    "反復性": "なし",
+    "照明": "不明",
+    "天候": "屋内",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "人物, 行為",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "品質向上",
+    "抽象度": "具体的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "反意",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 施工",
+    "情報源": "質問文のみ",
+    "確信度 (回答の)": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  },
+  {
+    "uid": "876d37d8-07f5-4508-b458-631b3e2c6fab",
+    "動作の種類": "創造活動",
+    "場所": "屋内 - リビング",
+    "登場人物の数": "1人",
+    "登場人物の関係性": "一人",
+    "対象オブジェクト": "道具 - 手工具",
+    "インタラクションの種類": "道具操作",
+    "視点の種類": "不明",
+    "異常行動の有無": "なし",
+    "協調性の有無 (複数人物の場合)": "該当なし",
+    "動作の粒度": "粗粒度",
+    "身体部位": "不明",
+    "視覚的特徴": "不明",
+    "音": "なし",
+    "アフォーダンス": "_support",
+    "タスクの目的": "創作/制作",
+    "作業環境": "不明",
+    "感情/心理州": "集中",
+    "使用言語 (音声がある場合)": "なし",
+    "視線の方向": "操作箇所",
+    "身体の姿勢": "立位",
+    "反復性": "なし",
+    "照明": "不明",
+    "天候": "屋内",
+    "質問の種類": "What",
+    "質問に対する考察の深さ": "推論的",
+    "質問の焦点": "人物, 行為",
+    "質問の難易度": "中",
+    "タスクの複雑さへの言及": "単一動作",
+    "時間軸": "全体",
+    "行動の意図": "品質向上",
+    "抽象度": "具体的",
+    "知識要求量": "一般知識",
+    "質問の構造": "直接的",
+    "回答候補同士の関係性": "反意",
+    "回答の具体性": "具体的",
+    "回答の網羅性": "部分的",
+    "回答の視点": "第三者視点",
+    "技能": "必要 - 施工",
+    "情報源": "質問文のみ",
+    "確信度 (回答の)": "高い",
+    "倫理的配慮": "不要",
+    "タスクの緊急度": "普通"
+  },
+  ...
+]
+```[0m
+
+        
