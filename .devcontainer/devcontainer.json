@@ -1,0 +1,51 @@
+{
+    "name": "qa-category-analysis-container",
+    "dockerComposeFile": "../compose.yml",
+    "service": "qa-category-analysis-server",
+    "workspaceFolder": "/workspace",
+    "forwardPorts": [
+        8052
+    ],
+    "shutdownAction": "stopCompose",
+    "postCreateCommand": "uv install && echo 'source /workspace/qa-category-analysis/bin/activate' >> ~/.bashrc",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.mypy-type-checker",
+                "njpwerner.autodocstring",
+                "usernamehw.errorlens"
+            ],
+            "settings": {
+                "editor.insertSpaces": true,
+                "editor.fontSize": 14,
+                "files.autoSave": "afterDelay",
+                "files.autoSaveDelay": 2000,
+                "[python]": {
+                    "editor.formatOnPaste": false,
+                    "editor.formatOnType": false,
+                    "editor.formatOnSave": true,
+                    "editor.formatOnSaveTimeout": 3000
+                },
+                "python.defaultInterpreterPath": "/usr/bin/python",
+                "mypy-type-checker.interpreter": [
+                    "/usr/bin/python"
+                ],
+                "mypy-type-checker.args": [
+                    "--config-file=${containerWorkspaceFolder}/pyproject.toml"
+                ],
+                "mypy-type-checker.path": [
+                    "/usr/local/bin/mypy"
+                ],
+                "python.testing.pytestPath": "/usr/local/bin/pytest",
+                "python.testing.pytest": [
+                    "--config=${containerWorkspaceFolder}/pyproject.toml"
+                ],
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestEnabled": true,
+                "autoDocstring.docstringFormat": "numpy",
+                "errorLens.delay": 500
+            }
+        }
+    }
+}
