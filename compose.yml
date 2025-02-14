@@ -1,0 +1,46 @@
+version: "3"
+
+services:
+  qa-category-analysis-server:
+    container_name: qa-category-analysis-container
+    image: qa-category-analysis-image
+    runtime: nvidia
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USERNAME: ${USERNAME:-devuser}
+        USER_UID: ${UID:-1001}
+        USER_GID: ${GID:-1001}
+    shm_size: '32gb'
+    working_dir: /workspace
+    tty: true
+    volumes:
+      - type: bind
+        source: .
+        target: /workspace
+      - type: bind
+        source: /mnt/st1/DeepSeekV3-2/DeepSeek-R1-Distill-Llama-70B
+        target: /workspace/models
+        read_only: true  # Since this is a model directory, it should be read-only
+    ports:
+      - "8052:8050"
+    environment:
+      ENV: "dev"
+      TZ: "Africa/Nairobi"  # Updated timezone
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
+      DEVICE: "gpu"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0','1','2','3','4','5','6','7']
+              capabilities: [gpu]
+   
+    # Remove the entrypoint override to use the one from Dockerfile
+    command: bash
+    
+volumes:
+  uv-cache:

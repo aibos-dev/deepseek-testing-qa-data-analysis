@@ -8,7 +8,7 @@ import subprocess
 model_01 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ2_XS-00001-of-00002.gguf"
 model_02 = "/workspace/models/DeepSeek-R1-Distill-Llama-70B-IQ3_S-00001-of-00003.gguf"
 
-model_name = model_01
+model_name = model_02
 
 # Path to the llama.cpp binary
 LLAMA_RUN_PATH = "/workspace/llama.cpp/build/bin/llama-run"
